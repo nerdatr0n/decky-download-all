@@ -1,115 +1,54 @@
 import {
-  ButtonItem,
+  definePlugin,
   PanelSection,
   PanelSectionRow,
-  Navigation,
-  staticClasses
+  ButtonItem,
 } from "@decky/ui";
-import {
-  addEventListener,
-  removeEventListener,
-  callable,
-  definePlugin,
-  toaster,
-  // routerHook
-} from "@decky/api"
-import { useState } from "react";
-import { FaShip } from "react-icons/fa";
-
-// import logo from "../assets/logo.png";
-
-// This function calls the python function "add", which takes in two numbers and returns their sum (as a number)
-// Note the type annotations:
-//  the first one: [first: number, second: number] is for the arguments
-//  the second one: number is for the return value
-const add = callable<[first: number, second: number], number>("add");
-
-// This function calls the python function "start_timer", which takes in no arguments and returns nothing.
-// It starts a (python) timer which eventually emits the event 'timer_event'
-const startTimer = callable<[], void>("start_timer");
+import { FaDownload } from "react-icons/fa";
 
 function Content() {
-  const [result, setResult] = useState<number | undefined>();
+  const handleDownloadAll = () => {
+    try {
+      const dl = (window as any).SteamClient.Downloads;
+      const apps = (window as any).appStore.allApps;
 
-  const onClick = async () => {
-    const result = await add(Math.random(), Math.random());
-    setResult(result);
+      // Log what we find
+      const toQueue = apps.filter((a: any) => 
+        [19, 35].includes(a.per_client_data?.[0]?.display_status)
+      );
+      console.log("DownloadAll: found", toQueue.length, "apps to queue");
+      toQueue.forEach((a: any) => {
+        console.log("DownloadAll: queuing", a.display_name, a.appid, a.per_client_data?.[0]?.display_status);
+        dl.QueueAppUpdate(a.appid);
+      });
+
+      // Enable after queuing
+      dl.EnableAllDownloads(true);
+      dl.SuspendDownloadThrottling(false);
+    } catch (e) {
+      console.error("DownloadAll error:", e);
+    }
   };
 
   return (
-    <PanelSection title="Panel Section">
+    <PanelSection title="Downloads">
       <PanelSectionRow>
         <ButtonItem
           layout="below"
-          onClick={onClick}
+          onClick={handleDownloadAll}
         >
-          {result ?? "Add two numbers via Python"}
+          ▶ Resume All Downloads
         </ButtonItem>
       </PanelSectionRow>
-      <PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => startTimer()}
-        >
-          {"Start Python timer"}
-        </ButtonItem>
-      </PanelSectionRow>
-
-      {/* <PanelSectionRow>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <img src={logo} />
-        </div>
-      </PanelSectionRow> */}
-
-      {/*<PanelSectionRow>
-        <ButtonItem
-          layout="below"
-          onClick={() => {
-            Navigation.Navigate("/decky-plugin-test");
-            Navigation.CloseSideMenus();
-          }}
-        >
-          Router
-        </ButtonItem>
-      </PanelSectionRow>*/}
     </PanelSection>
   );
-};
+}
 
 export default definePlugin(() => {
-  console.log("Template plugin initializing, this is called once on frontend startup")
-
-  // serverApi.routerHook.addRoute("/decky-plugin-test", DeckyPluginRouterTest, {
-  //   exact: true,
-  // });
-
-  // Add an event listener to the "timer_event" event from the backend
-  const listener = addEventListener<[
-    test1: string,
-    test2: boolean,
-    test3: number
-  ]>("timer_event", (test1, test2, test3) => {
-    console.log("Template got timer_event with:", test1, test2, test3)
-    toaster.toast({
-      title: "template got timer_event",
-      body: `${test1}, ${test2}, ${test3}`
-    });
-  });
-
   return {
-    // The name shown in various decky menus
-    name: "Test Plugin",
-    // The element displayed at the top of your plugin's menu
-    titleView: <div className={staticClasses.Title}>Decky Example Plugin</div>,
-    // The content of your plugin's menu
+    title: <div>Download All</div>,
     content: <Content />,
-    // The icon displayed in the plugin list
-    icon: <FaShip />,
-    // The function triggered when your plugin unloads
-    onDismount() {
-      console.log("Unloading")
-      removeEventListener("timer_event", listener);
-      // serverApi.routerHook.removeRoute("/decky-plugin-test");
-    },
+    icon: <FaDownload />,
+    onDismount() {},
   };
 });
