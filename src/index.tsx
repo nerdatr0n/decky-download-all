@@ -12,17 +12,15 @@ function Content() {
       const dl = (window as any).SteamClient.Downloads;
       const apps = (window as any).appStore.allApps;
 
-      // Log what we find
-      const toQueue = apps.filter((a: any) => 
-        [19, 35].includes(a.per_client_data?.[0]?.display_status)
-      );
-      console.log("DownloadAll: found", toQueue.length, "apps to queue");
-      toQueue.forEach((a: any) => {
-        console.log("DownloadAll: queuing", a.display_name, a.appid, a.per_client_data?.[0]?.display_status);
-        dl.QueueAppUpdate(a.appid);
+      // Log raw status values for all apps
+      apps.forEach((a: any) => {
+        const status = a.per_client_data?.[0]?.display_status;
+        if (status !== undefined && status !== 11 && status !== 9) {
+          dl.QueueAppUpdate(a.appid);
+          console.log("DownloadAll:", a.display_name, "status:", status, "per_client_data:", JSON.stringify(a.per_client_data?.[0]));
+        }
       });
 
-      // Enable after queuing
       dl.EnableAllDownloads(true);
       dl.SuspendDownloadThrottling(false);
     } catch (e) {
